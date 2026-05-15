@@ -2,6 +2,9 @@
 #include <QSaveFile>
 #include <QDir>
 #include <QFileInfo>
+#include <QDirIterator>
+#include <QTextStream>
+#include <QRegularExpression>
 
 NoteManager::NoteManager(QObject *parent) : QObject(parent){}
 //存文件
@@ -111,4 +114,46 @@ QString NoteManager::createNewFolder(const QString &directory, const QString &fo
 bool NoteManager::exists(const QString &absoluteFilePath) const
 {
     return QFileInfo::exists(absoluteFilePath);
+}
+
+QVector<SearchResult> NoteManager::searchInVault(const QString &directory, const QRegularExpression &regex) const
+{
+    QVector<SearchResult> results;
+
+    if (!regex.isValid()) return results;
+
+    // 搜索所有 .md 文件
+    QDirIterator it(directory, QStringList() << "*.md", QDir::Files, QDirIterator::Subdirectories);
+
+    // 遍历文件
+    while (it.hasNext())
+    {
+        QString filePath = it.next();
+        QFile file(filePath);
+
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            QTextStream in(&file);
+            in.setEncoding(QStringConverter::Utf8);
+
+            int lineNum = 1;
+            // 匹配
+            while (!in.atEnd())
+            {
+                QString line = in.readLine();
+                if (line.contains(regex))
+                {
+                    SearchResult res;
+                    res.filePath = filePath;
+                    res.lineNumber = lineNum;
+                    res.lineContent = line.trimmed();
+                    results.push_back(res);
+                }
+                lineNum++;
+            }
+            file.close();
+        }
+    }
+
+    return results;
 }

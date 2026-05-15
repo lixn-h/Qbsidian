@@ -3,7 +3,14 @@
 
 #include <QObject>
 #include <QString>
-
+// notemanager.h
+struct SearchResult
+{
+    QString filePath;       // 文件绝对路径
+    int lineNumber;         // 匹配到的行号
+    QString lineContent;    // 匹配到的那一行的完整内容
+};
+;
 class NoteManager : public QObject
 {
     Q_OBJECT
@@ -16,6 +23,8 @@ public:
     QString createNewNote(const QString &directory, const QString &baseName);
     QString createNewFolder(const QString &directory, const QString &folderName);
     bool exists(const QString &absoluteFilePath) const;
+
+    QVector<SearchResult> searchInVault(const QString &directory, const QRegularExpression &regex) const;
 
 signals:
     void errorOccurred(const QString &operation, const QString &reason);

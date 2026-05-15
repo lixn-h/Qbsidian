@@ -1,5 +1,7 @@
 #include "inlineparser.h"
 #include <QRegularExpression>
+#include <QRegularExpression>
+#include <QUrl>
 
 QString InlineParser::process(const QString &text)
 {
@@ -39,5 +41,34 @@ QString InlineParser::escapeHtml(const QString &text)
     result.replace("<", "&lt;");
     result.replace(">", "&gt;");
     result.replace("\"", "&quot;");
+    return result;
+}
+
+
+QString InlineParser::parseWikiLinks(const QString &text)
+{
+    QString result = text;
+    QRegularExpression re("\\[\\[([^|\\]]+)(?:\\|([^\\]]+))?\\]\\]");
+
+    QRegularExpressionMatchIterator i = re.globalMatch(result);
+    QList<QRegularExpressionMatch> matches;
+    while (i.hasNext())
+    {
+        matches.prepend(i.next());
+    }
+
+    for (const QRegularExpressionMatch &match : matches)
+    {
+        QString fullMatch = match.captured(0); // 完整的 [[...]]
+        QString noteName = match.captured(1).trimmed(); // 笔记名
+        QString alias = match.captured(2).trimmed();    // 别名
+
+        // 如果没有别名，显示文字就是笔记名
+        QString displayText = alias.isEmpty() ? noteName : alias;
+
+        QString html = QString("<a href=\"internal://%1\">%2</a>").arg(QString(QUrl::toPercentEncoding(noteName)), displayText);
+        result.replace(match.capturedStart(0), match.capturedLength(0), html);
+    }
+
     return result;
 }
