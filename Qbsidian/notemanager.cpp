@@ -116,6 +116,7 @@ bool NoteManager::exists(const QString &absoluteFilePath) const
     return QFileInfo::exists(absoluteFilePath);
 }
 
+//匹配文章内容
 QVector<SearchResult> NoteManager::searchInVault(const QString &directory, const QRegularExpression &regex) const
 {
     QVector<SearchResult> results;
@@ -156,4 +157,55 @@ QVector<SearchResult> NoteManager::searchInVault(const QString &directory, const
     }
 
     return results;
+}
+
+//匹配文件名
+QString NoteManager::findNotePath(const QString &directory, const QString &noteName) const
+{
+    // 目标文件名
+    QString targetFileName = noteName + ".md";
+
+    // 遍历仓库的 .md 文件
+    QDirIterator it(directory, QStringList() << "*.md", QDir::Files, QDirIterator::Subdirectories);
+
+    while (it.hasNext())
+    {
+        QString filePath = it.next();
+        QFileInfo info(filePath);
+
+        // 匹配
+        if (info.fileName() == targetFileName) {
+            return filePath;
+        }
+    }
+
+    // 文件不存在
+    return QString();
+}
+//删除文件
+bool NoteManager::deleteItem(const QString &absolutePath)
+{
+    QFileInfo fileInfo(absolutePath);
+
+    if (!fileInfo.exists()) {
+        emit errorOccurred("删除失败", "文件或文件夹不存在");
+        return false;
+    }
+
+    if (fileInfo.isFile()) {
+        // 删除单文件
+        if (!QFile::remove(absolutePath)) {
+            emit errorOccurred("删除文件", "文件可能被占用或没有权限");
+            return false;
+        }
+    }
+    else if (fileInfo.isDir()) {
+        // 删除文件夹
+        QDir dir(absolutePath);
+        if (!dir.removeRecursively()) {
+            emit errorOccurred("删除文件夹", "无法清空或删除该目录");
+            return false;
+        }
+    }
+    return true;
 }

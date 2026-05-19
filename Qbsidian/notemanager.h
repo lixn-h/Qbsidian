@@ -23,6 +23,8 @@ public:
     QString createNewNote(const QString &directory, const QString &baseName);
     QString createNewFolder(const QString &directory, const QString &folderName);
     bool exists(const QString &absoluteFilePath) const;
+    bool deleteItem(const QString &absolutePath);
+    QString findNotePath(const QString &directory, const QString &noteName) const;
 
     QVector<SearchResult> searchInVault(const QString &directory, const QRegularExpression &regex) const;
 

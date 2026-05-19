@@ -16,11 +16,25 @@ QString InlineParser::process(const QString &text)
     // 超链接
     QRegularExpression linkRe("\\[(.*?)\\]\\((.*?)\\)");
     html.replace(linkRe, "<a href=\"\\2\">\\1</a>");
-    QRegularExpression autolinkRe("<(https?://.+?)>");
+    QRegularExpression autolinkRe("&lt;(https?://.+?)&gt;");
     html.replace(autolinkRe, "<a href=\"\\1\">\\1</a>");
     //行内代码块
     QRegularExpression codeRe("`(.+?)`");
     html.replace(codeRe, "<code>\\1</code>");
+    //双向链接
+    QRegularExpression wikiRe("\\[\\[([^|\\]]+)(?:\\|([^\\]]+))?\\]\\]");
+    QRegularExpressionMatch wikiMatch;
+    while ((wikiMatch = wikiRe.match(html)).hasMatch())
+    {
+        QString noteName = wikiMatch.captured(1).trimmed();
+        QString alias = wikiMatch.captured(2).trimmed();
+
+        QString displayText = alias.isEmpty() ? noteName : alias;
+        QString encodedName = QUrl::toPercentEncoding(noteName);
+
+        QString replacement = QString("<a href=\"internal://%1\">%2</a>").arg(encodedName, displayText);
+        html.replace(wikiMatch.capturedStart(0), wikiMatch.capturedLength(0), replacement);
+    }
     //粗体
     QRegularExpression boldRe("\\*\\*(.+?)\\*\\*",QRegularExpression::DotMatchesEverythingOption);
     html.replace(boldRe, "<strong>\\1</strong>");
@@ -41,34 +55,5 @@ QString InlineParser::escapeHtml(const QString &text)
     result.replace("<", "&lt;");
     result.replace(">", "&gt;");
     result.replace("\"", "&quot;");
-    return result;
-}
-
-
-QString InlineParser::parseWikiLinks(const QString &text)
-{
-    QString result = text;
-    QRegularExpression re("\\[\\[([^|\\]]+)(?:\\|([^\\]]+))?\\]\\]");
-
-    QRegularExpressionMatchIterator i = re.globalMatch(result);
-    QList<QRegularExpressionMatch> matches;
-    while (i.hasNext())
-    {
-        matches.prepend(i.next());
-    }
-
-    for (const QRegularExpressionMatch &match : matches)
-    {
-        QString fullMatch = match.captured(0); // 完整的 [[...]]
-        QString noteName = match.captured(1).trimmed(); // 笔记名
-        QString alias = match.captured(2).trimmed();    // 别名
-
-        // 如果没有别名，显示文字就是笔记名
-        QString displayText = alias.isEmpty() ? noteName : alias;
-
-        QString html = QString("<a href=\"internal://%1\">%2</a>").arg(QString(QUrl::toPercentEncoding(noteName)), displayText);
-        result.replace(match.capturedStart(0), match.capturedLength(0), html);
-    }
-
     return result;
 }
